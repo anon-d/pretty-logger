@@ -3,8 +3,8 @@ package prettylogger
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 	"io"
+	stdLog "log"
 	"log/slog"
 
 	"github.com/fatih/color"
@@ -15,23 +15,22 @@ type LogHandlerOptions struct {
 }
 
 type LogHandler struct {
-	opts  LogHandlerOptions
-	inner slog.Handler
-	l     *slog.Logger
+	opts LogHandlerOptions
+	slog.Handler
+	l     *stdLog.Logger
 	attrs []slog.Attr
 }
 
 func (opts LogHandlerOptions) NewLogHandler(out io.Writer) *LogHandler {
-	inner := slog.NewJSONHandler(out, opts.SlogOptions)
-	return &LogHandler{
-		opts:  opts,
-		inner: inner,
-		l:     slog.New(inner),
+	h := &LogHandler{
+		Handler: slog.NewJSONHandler(out, opts.SlogOptions),
+		l:       stdLog.New(out, "", 0),
 	}
+	return h
 }
 
 func (h *LogHandler) Handle(ctx context.Context, r slog.Record) error {
-	level := r.Level.String()
+	level := r.Level.String() + ":"
 	switch r.Level {
 	case slog.LevelDebug:
 		level = color.MagentaString(level)
@@ -66,7 +65,7 @@ func (h *LogHandler) Handle(ctx context.Context, r slog.Record) error {
 	timeStr := r.Time.Format("[15:04:05]")
 	msg := color.CyanString(r.Message)
 
-	fmt.Println(
+	h.l.Println(
 		timeStr,
 		level,
 		msg,
@@ -77,23 +76,23 @@ func (h *LogHandler) Handle(ctx context.Context, r slog.Record) error {
 }
 
 func (h *LogHandler) Enabled(ctx context.Context, level slog.Level) bool {
-	return h.inner.Enabled(ctx, level)
+	return h.Handler.Enabled(ctx, level)
 }
 
 func (h *LogHandler) WithAttrs(attrs []slog.Attr) slog.Handler {
 	return &LogHandler{
-		opts:  h.opts,
-		inner: h.inner,
-		l:     h.l,
-		attrs: append(h.attrs, attrs...),
+		opts:    h.opts,
+		Handler: h.Handler,
+		l:       h.l,
+		attrs:   append(h.attrs, attrs...),
 	}
 }
 
 func (h *LogHandler) WithGroup(name string) slog.Handler {
 	return &LogHandler{
-		opts:  h.opts,
-		inner: h.inner.WithGroup(name),
-		l:     h.l,
-		attrs: h.attrs,
+		opts:    h.opts,
+		Handler: h.Handler.WithGroup(name),
+		l:       h.l,
+		attrs:   h.attrs,
 	}
 }
