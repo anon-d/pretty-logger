@@ -72,7 +72,7 @@ func (h *LogHandler) Handle(ctx context.Context, r slog.Record) error {
 		timeStr,
 		level,
 		msg,
-		color.RGB(168, 168, 168).Sprintf(string(b)),
+		color.HiBlackString(string(b)),
 	)
 
 	return nil
