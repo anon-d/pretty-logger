@@ -30,6 +30,7 @@ func (opts LogHandlerOptions) NewLogHandler(out io.Writer) *LogHandler {
 }
 
 func (h *LogHandler) Handle(ctx context.Context, r slog.Record) error {
+	color.NoColor = false
 	level := r.Level.String() + ":"
 	switch r.Level {
 	case slog.LevelDebug:
