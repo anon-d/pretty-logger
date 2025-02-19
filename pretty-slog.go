@@ -32,12 +32,7 @@ func (opts LogHandlerOptions) NewLogHandler(out io.Writer) *LogHandler {
 func (h *LogHandler) Handle(ctx context.Context, r slog.Record) error {
 	color.NoColor = false
 
-	grayFunc := color.RGB(168, 168, 168).SprintFunc()
-
 	level := r.Level.String() + ":"
-
-	message := r.Message
-	message = grayFunc(message)
 
 	switch r.Level {
 	case slog.LevelDebug:
@@ -73,11 +68,14 @@ func (h *LogHandler) Handle(ctx context.Context, r slog.Record) error {
 	timeStr := r.Time.Format("[15:04:05]")
 	msg := color.CyanString(r.Message)
 
+	grayFunc := color.RGB(168, 168, 168).SprintFunc()
+	opt := grayFunc(string(b))
+
 	h.l.Println(
 		timeStr,
 		level,
 		msg,
-		color.WhiteString(string(b)),
+		opt,
 	)
 
 	return nil
