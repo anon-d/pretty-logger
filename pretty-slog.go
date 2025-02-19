@@ -68,7 +68,7 @@ func (h *LogHandler) Handle(ctx context.Context, r slog.Record) error {
 	timeStr := r.Time.Format("[15:04:05]")
 	msg := color.CyanString(r.Message)
 
-	grayFunc := color.RGB(168, 168, 168).SprintFunc()
+	grayFunc := color.RGB(168, 168, 168).SprintfFunc()
 	opt := grayFunc(string(b))
 
 	h.l.Println(
