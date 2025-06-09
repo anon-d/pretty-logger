@@ -6,6 +6,7 @@ import (
 	"io"
 	"log"
 	"log/slog"
+	"time"
 
 	"github.com/fatih/color"
 )
@@ -17,19 +18,25 @@ import (
 // Error 8
 
 type PrettyHandlerOptions struct {
-	SlogOpts   slog.HandlerOptions
-	TimeFormat string
+	SlogOpts slog.HandlerOptions
+	Formats  map[slog.Level]string
 }
 
 type PrettyHandler struct {
 	slog.Handler
-	l          *log.Logger
-	attrs      []slog.Attr
-	timeFormat string
+	l       *log.Logger
+	attrs   []slog.Attr
+	formats map[slog.Level]string
 }
 
 func (h *PrettyHandler) Handle(ctx context.Context, r slog.Record) error {
 	color.NoColor = false
+
+	format, ok := h.formats[r.Level]
+	if !ok {
+		format = time.RFC3339
+	}
+	timeStr := r.Time.Format(format)
 
 	level := r.Level.String() + ":"
 
@@ -59,7 +66,6 @@ func (h *PrettyHandler) Handle(ctx context.Context, r slog.Record) error {
 		return err
 	}
 
-	timeStr := r.Time.Format(h.timeFormat)
 	msg := color.CyanString(r.Message)
 
 	h.l.Println(
@@ -97,9 +103,9 @@ func NewPrettyHandler(
 	opts PrettyHandlerOptions,
 ) *PrettyHandler {
 	h := &PrettyHandler{
-		Handler:    slog.NewJSONHandler(out, &opts.SlogOpts),
-		l:          log.New(out, "", 0),
-		timeFormat: opts.TimeFormat,
+		Handler: slog.NewJSONHandler(out, &opts.SlogOpts),
+		l:       log.New(out, "", 0),
+		formats: opts.Formats,
 	}
 
 	return h
