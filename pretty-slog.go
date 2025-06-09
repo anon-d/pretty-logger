@@ -17,13 +17,15 @@ import (
 // Error 8
 
 type PrettyHandlerOptions struct {
-	SlogOpts slog.HandlerOptions
+	SlogOpts   slog.HandlerOptions
+	TimeFormat string
 }
 
 type PrettyHandler struct {
 	slog.Handler
-	l     *log.Logger
-	attrs []slog.Attr
+	l          *log.Logger
+	attrs      []slog.Attr
+	timeFormat string
 }
 
 func (h *PrettyHandler) Handle(ctx context.Context, r slog.Record) error {
@@ -57,7 +59,7 @@ func (h *PrettyHandler) Handle(ctx context.Context, r slog.Record) error {
 		return err
 	}
 
-	timeStr := r.Time.Format("[15:05:05]")
+	timeStr := r.Time.Format(h.timeFormat)
 	msg := color.CyanString(r.Message)
 
 	h.l.Println(
@@ -95,8 +97,9 @@ func NewPrettyHandler(
 	opts PrettyHandlerOptions,
 ) *PrettyHandler {
 	h := &PrettyHandler{
-		Handler: slog.NewJSONHandler(out, &opts.SlogOpts),
-		l:       log.New(out, "", 0),
+		Handler:    slog.NewJSONHandler(out, &opts.SlogOpts),
+		l:          log.New(out, "", 0),
+		timeFormat: opts.TimeFormat,
 	}
 
 	return h
