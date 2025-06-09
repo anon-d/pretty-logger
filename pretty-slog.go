@@ -4,32 +4,29 @@ import (
 	"context"
 	"encoding/json"
 	"io"
-	stdLog "log"
+	"log"
 	"log/slog"
 
 	"github.com/fatih/color"
 )
 
-type LogHandlerOptions struct {
-	SlogOptions *slog.HandlerOptions
+// const TraceLevel = slog.Level(-8)
+
+// Debug - 4
+// Info 0
+// Warn 4
+// Error 8
+
+type PrettyHandlerOptions struct {
+	SlogOpts slog.HandlerOptions
 }
 
-type LogHandler struct {
-	opts LogHandlerOptions
+type PrettyHandler struct {
 	slog.Handler
-	l     *stdLog.Logger
-	attrs []slog.Attr
+	l *log.Logger
 }
 
-func (opts LogHandlerOptions) NewLogHandler(out io.Writer) *LogHandler {
-	h := &LogHandler{
-		Handler: slog.NewJSONHandler(out, opts.SlogOptions),
-		l:       stdLog.New(out, "", 0),
-	}
-	return h
-}
-
-func (h *LogHandler) Handle(ctx context.Context, r slog.Record) error {
+func (h *PrettyHandler) Handle(ctx context.Context, r slog.Record) error {
 	color.NoColor = false
 
 	level := r.Level.String() + ":"
@@ -51,21 +48,12 @@ func (h *LogHandler) Handle(ctx context.Context, r slog.Record) error {
 		return true
 	})
 
-	for _, a := range h.attrs {
-		fields[a.Key] = a.Value.Any()
+	b, err := json.MarshalIndent(fields, "", "  ")
+	if err != nil {
+		return err
 	}
 
-	var b []byte
-	var err error
-
-	if len(fields) > 0 {
-		b, err = json.MarshalIndent(fields, "", "  ")
-		if err != nil {
-			return err
-		}
-	}
-
-	timeStr := r.Time.Format("[15:04:05]")
+	timeStr := r.Time.Format("[15:05:05]")
 	msg := color.CyanString(r.Message)
 
 	h.l.Println(
@@ -78,24 +66,36 @@ func (h *LogHandler) Handle(ctx context.Context, r slog.Record) error {
 	return nil
 }
 
-func (h *LogHandler) Enabled(ctx context.Context, level slog.Level) bool {
+func (h *PrettyHandler) Enabled(ctx context.Context, level slog.Level) bool {
 	return h.Handler.Enabled(ctx, level)
 }
 
-func (h *LogHandler) WithAttrs(attrs []slog.Attr) slog.Handler {
-	return &LogHandler{
-		opts:    h.opts,
-		Handler: h.Handler,
-		l:       h.l,
-		attrs:   append(h.attrs, attrs...),
-	}
-}
+// func (h *PrettyHandler) WithAttrs(attrs []slog.Attr) slog.Handler {
+// 	return &PrettyHandler{
+// 		opts:    h.opts,
+// 		Handler: h.Handler,
+// 		l:       h.l,
+// 		attrs:   append(h.attrs, attrs...),
+// 	}
+// }
 
-func (h *LogHandler) WithGroup(name string) slog.Handler {
-	return &LogHandler{
-		opts:    h.opts,
-		Handler: h.Handler.WithGroup(name),
-		l:       h.l,
-		attrs:   h.attrs,
+// func (h *PrettyHandler) WithGroup(name string) slog.Handler {
+// 	return &PrettyHandler{
+// 		opts:    h.opts,
+// 		Handler: h.Handler.WithGroup(name),
+// 		l:       h.l,
+// 		attrs:   h.attrs,
+// 	}
+// }
+
+func NewPrettyHandler(
+	out io.Writer,
+	opts PrettyHandlerOptions,
+) *PrettyHandler {
+	h := &PrettyHandler{
+		Handler: slog.NewJSONHandler(out, &opts.SlogOpts),
+		l:       log.New(out, "", 0),
 	}
+
+	return h
 }
