@@ -82,6 +82,14 @@ func (h *PrettyHandler) WithAttrs(attrs []slog.Attr) slog.Handler {
 	}
 }
 
+func (h *PrettyHandler) WithGroup(name string) slog.Handler {
+	return &PrettyHandler{
+		Handler: h.Handler.WithGroup(name),
+		l:       h.l,
+		attrs:   h.attrs,
+	}
+}
+
 func NewPrettyHandler(
 	out io.Writer,
 	opts PrettyHandlerOptions,
