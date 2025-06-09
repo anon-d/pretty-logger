@@ -11,7 +11,6 @@ import (
 )
 
 // const TraceLevel = slog.Level(-8)
-
 // Debug - 4
 // Info 0
 // Warn 4
@@ -23,7 +22,8 @@ type PrettyHandlerOptions struct {
 
 type PrettyHandler struct {
 	slog.Handler
-	l *log.Logger
+	l     *log.Logger
+	attrs []slog.Attr
 }
 
 func (h *PrettyHandler) Handle(ctx context.Context, r slog.Record) error {
@@ -48,6 +48,10 @@ func (h *PrettyHandler) Handle(ctx context.Context, r slog.Record) error {
 		return true
 	})
 
+	for _, a := range h.attrs {
+		fields[a.Key] = a.Value.Any()
+	}
+
 	b, err := json.MarshalIndent(fields, "", "  ")
 	if err != nil {
 		return err
@@ -70,23 +74,13 @@ func (h *PrettyHandler) Enabled(ctx context.Context, level slog.Level) bool {
 	return h.Handler.Enabled(ctx, level)
 }
 
-// func (h *PrettyHandler) WithAttrs(attrs []slog.Attr) slog.Handler {
-// 	return &PrettyHandler{
-// 		opts:    h.opts,
-// 		Handler: h.Handler,
-// 		l:       h.l,
-// 		attrs:   append(h.attrs, attrs...),
-// 	}
-// }
-
-// func (h *PrettyHandler) WithGroup(name string) slog.Handler {
-// 	return &PrettyHandler{
-// 		opts:    h.opts,
-// 		Handler: h.Handler.WithGroup(name),
-// 		l:       h.l,
-// 		attrs:   h.attrs,
-// 	}
-// }
+func (h *PrettyHandler) WithAttrs(attrs []slog.Attr) slog.Handler {
+	return &PrettyHandler{
+		Handler: h.Handler.WithAttrs(attrs),
+		l:       h.l, // обязательно скопируй всё нужное
+		attrs:   append(h.attrs, attrs...),
+	}
+}
 
 func NewPrettyHandler(
 	out io.Writer,
